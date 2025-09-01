@@ -3,8 +3,14 @@ from trade import views as metatradeView
 
 
 urlpatterns = [
-    path('metatrade/account-info/',
+    path('metatrade/account/account-info/',
          metatradeView.AccountInfoAPIView.as_view(), name='mt5-account-info'),
+
+    path('metatrade/symbol/symbol-info/',
+         metatradeView.SymbolInfoAPIView.as_view(), name='mt5-symbol-info'),
+
+    path('metatrade/symbol/all-symbol-info/',
+         metatradeView.AllSymbolsAPIView.as_view(), name='mt5-all-symbol-info'),
 
     path('metatrade/trade-order/',
          metatradeView.TradeOrderAPIView.as_view(), name='mt5-trade-order'),

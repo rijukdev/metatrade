@@ -24,6 +24,7 @@ class TradeOrderAPIView(APIView):
             sl = data.get('sl')
             tp = data.get('tp')
 
+            # Initialize MT5
             if path:
                 mt5.initialize(path, login=login,
                                password=password, server=server)
@@ -46,10 +47,17 @@ class TradeOrderAPIView(APIView):
             if not symbol_info.visible:
                 mt5.symbol_select(symbol, True)
 
-            # Prepare order request
-            price = mt5.symbol_info_tick(
-                symbol).ask if order_type == 'buy' else mt5.symbol_info_tick(symbol).bid
+            # Get current price
+            tick = mt5.symbol_info_tick(symbol)
+            if not tick:
+                mt5.shutdown()
+                return Response({"error": f"Could not get price for '{symbol}'"}, status=400)
+
+            price = tick.ask if order_type == 'buy' else tick.bid
             order_type_enum = mt5.ORDER_TYPE_BUY if order_type == 'buy' else mt5.ORDER_TYPE_SELL
+
+            # 🔑 Force filling mode = 1 (IOC)
+            filling_mode = mt5.ORDER_FILLING_IOC
 
             request_order = {
                 "action": mt5.TRADE_ACTION_DEAL,
@@ -63,7 +71,7 @@ class TradeOrderAPIView(APIView):
                 "magic": 100234,
                 "comment": "Order from Django API",
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
+                # "type_filling": filling_mode,
             }
 
             result = mt5.order_send(request_order)
@@ -81,6 +89,7 @@ class TradeOrderAPIView(APIView):
                 "order_id": result.order,
                 "symbol": symbol,
                 "volume": volume,
-                "price": price
+                "price": price,
+                "filling_mode": filling_mode
             }, status=200)
         return Response(serializer.errors, status=400)
